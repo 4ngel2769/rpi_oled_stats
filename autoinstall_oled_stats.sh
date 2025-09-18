@@ -576,7 +576,7 @@ main() {
         fi
         print_success "🧪 Script test completed"
     else
-        print_status "⏭️  Skipping script test (OLED not detected)"
+        print_status "⏭️ Skipping script test (OLED not detected)"
     fi
     
     # Step 8: Create startup script
