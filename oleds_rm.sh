@@ -45,7 +45,7 @@ else
 fi
 
 echo
-read -p "Proceed with removal? [y/N]: " CONFIRM
+read -p "Proceed with removal? [y/N]: " CONFIRM < /dev/tty
 if [[ ! "$CONFIRM" =~ ^[Yy]$ ]]; then
     echo "Aborted."
     exit 1
