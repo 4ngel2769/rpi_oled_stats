@@ -282,11 +282,11 @@ print_status() {
 }
 
 print_success() {
-    echo -e "$(c_success)[SUCCESS >>]${NC} $1"
+    echo -e "$(c_success)[✅ SUCCESS]${NC} $1"
 }
 
 print_warning() {
-    echo -e "$(c_warning)[WARNING >>]${NC} $1"
+    echo -e "$(c_warning)[⚠️ WARNING]${NC} $1"
 }
 
 print_error() {
@@ -295,7 +295,7 @@ print_error() {
 
 print_verbose() {
     if [ "$VERBOSE" = true ]; then
-        echo -e "$(c_highlight)[ VERBOSE ]${NC} $1"
+        echo -e "$(c_highlight)[< VERBOSE]${NC} $1"
     fi
 }
 
