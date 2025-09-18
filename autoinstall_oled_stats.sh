@@ -208,7 +208,7 @@ show_help() {
     echo -e "${NC} $(c_accent)⚙️  OPTIONS:${NC}"
     echo -e "${NC} $(c_special)-v, --verbose${NC}      Enable detailed output${NC}"
     echo -e "${NC} $(c_special)-t, --theme <1-3>${NC}  Set color theme (1=Standard, 2=HTB, 3=Pastel)${NC}"
-    echo -e "${NC} $(c_special)--version${NC}          Show version information${NC}"
+    echo -e "${NC} $(c_special)-V, --version${NC}      Show version information${NC}"
     echo -e "${NC} $(c_special)-h, --help${NC}         Show this help message${NC}"
     echo -e ""
     echo -e "${NC} $(c_secondary)🎨 AVAILABLE THEMES:${NC}"
