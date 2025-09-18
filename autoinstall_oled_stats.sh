@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.11
+# Version: v0.12
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,14 +13,18 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.11"
+SCRIPT_VERSION="v0.12"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
 # Default settings
 VERBOSE=false
 UNATTENDED=false
-DEFAULT_SCRIPT_CHOICE=2  # Default to monitor.py for unattended mode
+SILENT=false
+SKIP_APT_UPDATE=false
+AUTO_REBOOT_UNATTENDED=true  # Control auto-reboot in unattended mode
+UNATTENDED_REBOOT_DELAY=10   # Delay before auto-reboot in unattended mode (seconds)
+DEFAULT_SCRIPT_CHOICE=2      # Default to monitor.py for unattended mode
 
 # ================================================================================
 # THEME CONFIGURATION
