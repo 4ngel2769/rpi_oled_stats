@@ -180,11 +180,11 @@ show_version() {
     echo -e " $(c_text)🔗 Original Code:${NC}"
     echo -e "   https://github.com/mklements/OLED_Stats"
     echo -e ""
-    echo -e " $(c_text)📋 Description:${NC}"
+    echo -e " $(c_text)About:${NC}"
     echo -e "   Automates OLED Stats Display installation for"
-    echo -e "   Raspberry Pi running Raspberry Pi OS Bookworm"
+    echo -e "   Raspberry Pis, making it easy to set up for anyone."
     echo -e ""
-    echo -e " $(c_gold)🏆 Credits:${NC}"
+    echo -e " $(c_gold)💚 Credits:${NC}"
     echo -e "   • Installation script by $SCRIPT_AUTHOR"
     echo -e "   • Original OLED Stats by $ORIGINAL_AUTHOR"
     echo -e "${NC}"
@@ -282,11 +282,11 @@ print_status() {
 }
 
 print_success() {
-    echo -e "$(c_success)[✅ SUCCESS]${NC} $1"
+    echo -e "$(c_success)[SUCCESS >>]${NC} $1"
 }
 
 print_warning() {
-    echo -e "$(c_warning)[⚠️ WARNING]${NC} $1"
+    echo -e "$(c_warning)[WARNING >>]${NC} $1"
 }
 
 print_error() {
@@ -542,11 +542,11 @@ main() {
     # Choose which script to run
     echo ""
     echo -e "$(c_primary)╔════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "$(c_primary)║$(c_secondary)                      📱 SCRIPT SELECTION                       $(c_primary)║${NC}"
+    echo -e "$(c_primary)║$(c_secondary)                      📟 SCRIPT SELECTION                       $(c_primary)║${NC}"
     echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)1)${NC} 📝 stats.py - Simple text-based display                     $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)2)${NC} 📟 monitor.py - Display with icons                          $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)3)${NC} ⚡ psutilstats.py - Enhanced compatibility                  $(c_primary)║${NC}"
+    echo -e "$(c_primary)║${NC} $(c_special)1)${NC} stats.py       - Simple text-based display                  $(c_primary)║${NC}"
+    echo -e "$(c_primary)║${NC} $(c_special)2)${NC} monitor.py     - Display with icons                         $(c_primary)║${NC}"
+    echo -e "$(c_primary)║${NC} $(c_special)3)${NC} psutilstats.py - Enhanced compatibility                     $(c_primary)║${NC}"
     echo -e "$(c_primary)╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
     read -p "🎯 Which script would you like to use as default? (1-3): " SCRIPT_CHOICE < /dev/tty
@@ -657,7 +657,7 @@ EOF
     echo -e "$(c_primary)${NC} 🔄 The display will start automatically 30 seconds after boot.${NC}"
     echo -e "$(c_primary)${NC}  ╰  If you need to change this delay, edit the cron job by running: sudo crontab -e${NC}"
     echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
-    echo -e "$(c_primary)$(c_gold)                               💚 CREDITS${NC}"
+    echo -e "$(c_primary)$(c_gold)                            💚 CREDITS${NC}"
     echo -e ""
     echo -e "$(c_primary)${NC} Installation script by $SCRIPT_AUTHOR${NC}"
     echo -e "$(c_primary)${NC} Original OLED Stats code by $ORIGINAL_AUTHOR${NC}"
