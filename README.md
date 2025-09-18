@@ -35,7 +35,7 @@ For the fastest setup experience, use the installation script that handles every
 
 1. Run this command in your terminal to start the installation:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash
+curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash
 ```
 
 2. When close to being done, the script will prompt you to select your preferred display script:
@@ -61,7 +61,7 @@ curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads
 
 #### 🔍 **Verbose Installation** (see detailed output)
 ```bash
-curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash -s -- --verbose
+curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- --verbose
 ```
 
 > [!NOTE]  
@@ -70,13 +70,13 @@ curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads
 #### 🛠️ **Advanced Options**
 ```bash
 # Combine verbose with custom theme
-curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash -s -- --theme 2 --verbose
+curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- --theme 2 --verbose
 
 # Show help
-curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash -s -- --help
+curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- --help
 
 # Show version
-curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash -s -- --version
+curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- --version
 ```
 
 ### What the Auto-Installer Does:

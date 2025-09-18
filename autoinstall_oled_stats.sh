@@ -7,8 +7,8 @@
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
 # Original Code: https://github.com/mklements/OLED_Stats
 # Automates the installation process for Raspberry Pi OS Bookworm
-# Usage: curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash
-# Usage with verbose: curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/refs/heads/main/autoinstall_oled_stats.sh | bash -s -- -v
+# Usage: curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash
+# Usage with verbose: curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- -v
 
 set -e  # Exit on any error
 
