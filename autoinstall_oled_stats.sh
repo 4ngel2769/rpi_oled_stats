@@ -282,7 +282,7 @@ print_status() {
 }
 
 print_success() {
-    echo -e "$(c_success)[✅ SUCCESS]${NC} $1"
+    echo -e "$(c_success)[<< SUCCESS]${NC} $1"
 }
 
 print_warning() {
