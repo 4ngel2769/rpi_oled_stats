@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.10
+# Version: v0.11
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,12 +13,14 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.10"
+SCRIPT_VERSION="v0.11"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
-# Default verbosity level
+# Default settings
 VERBOSE=false
+UNATTENDED=false
+DEFAULT_SCRIPT_CHOICE=2  # Default to monitor.py for unattended mode
 
 # ================================================================================
 # THEME CONFIGURATION
@@ -207,6 +209,7 @@ show_help() {
     echo -e ""
     echo -e "${NC} $(c_accent)⚙️  OPTIONS:${NC}"
     echo -e "${NC} $(c_special)-v, --verbose${NC}      Enable detailed output${NC}"
+    echo -e "${NC} $(c_special)-u, --unattended${NC}   Run in non-interactive mode (uses defaults)${NC}"
     echo -e "${NC} $(c_special)-t, --theme <1-3>${NC}  Set color theme (1=Standard, 2=HTB, 3=Pastel)${NC}"
     echo -e "${NC} $(c_special)-V, --version${NC}      Show version information${NC}"
     echo -e "${NC} $(c_special)-h, --help${NC}         Show this help message${NC}"
@@ -216,16 +219,22 @@ show_help() {
     echo -e "${NC} $(c_special)2${NC} - HTB       (Hack The Box cybersec style)${NC}"
     echo -e "${NC} $(c_special)3${NC} - PASTEL    (Soft and pleasant colors) [Default]${NC}"
     echo -e ""
+    echo -e "${NC} $(c_secondary)UNATTENDED MODE:${NC}"
+    echo -e "${NC} Uses default settings for automated deployments:${NC}"
+    echo -e "${NC} - Default script: monitor.py (enhanced compatibility)${NC}"
+    echo -e "${NC} - No user prompts, automatic reboot${NC}"
+    echo -e "${NC} - Works well for scripts and CI/CD pipelines${NC}"
+    echo -e ""
     echo -e "${NC} $(c_secondary)💡 EXAMPLES:${NC}"
     echo -e ""
     echo -e "${NC} $(c_text) - Standard installation:${NC}"
     echo -e "${NC} curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash${NC}"
     echo -e ""
+    echo -e "${NC} $(c_text) - Unattended installation:${NC}"
+    echo -e "${NC} curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- -u${NC}"
+    echo -e ""
     echo -e "${NC} $(c_text) - HTB theme with verbose:${NC}"
     echo -e "${NC} curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- --theme 2 --verbose${NC}"
-    echo -e ""
-    echo -e "${NC} $(c_text) - Standard theme installation:${NC}"
-    echo -e "${NC} curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoinstall_oled_stats.sh | bash -s -- -t 1${NC}"
     echo -e "$(c_primary)◂━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━▸${NC}"
     echo ""
     exit 0
@@ -236,6 +245,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         -v|--verbose)
             VERBOSE=true
+            shift
+            ;;
+        -u|--unattended)
+            UNATTENDED=true
             shift
             ;;
         -t|--theme)
@@ -342,14 +355,89 @@ check_raspberry_pi() {
     print_success "Raspberry Pi detected"
 }
 
+# Check Pi model compatibility
+check_pi_compatibility() {
+    print_verbose "Checking Raspberry Pi model compatibility..."
+    local pi_model
+    pi_model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+    
+    print_verbose "Detected: $pi_model"
+    
+    # Check for known compatible models
+    if echo "$pi_model" | grep -qE "(Raspberry Pi (2|3|4|5|Zero|Zero 2))"; then
+        print_success "Pi model is compatible with OLED Stats"
+        if [ "$VERBOSE" = true ]; then
+            case "$pi_model" in
+                *"Pi 2"*) print_verbose "Pi 2 detected" ;;
+                *"Pi 3"*) print_verbose "Pi 3 detected" ;;
+                *"Pi 4"*) print_verbose "Pi 4 detected" ;;
+                *"Pi 5"*) print_verbose "Pi 5 detected" ;;
+                *"Zero"*) print_verbose "Pi Zero detected" ;;
+            esac
+        fi
+    else
+        print_warning "⚠️  Unknown Pi model. Script may work but is not tested on this model."
+    fi
+}
+
+# Verify Python library installation
+verify_python_libraries() {
+    print_status "🧪 Verifying Python library installation..."
+    
+    # Test if libraries can be imported
+    local test_script="
+import sys
+try:
+    import board
+    import busio
+    import digitalio
+    import adafruit_ssd1306
+    from PIL import Image, ImageDraw, ImageFont
+    import psutil
+    print('SUCCESS: All required libraries imported successfully')
+    sys.exit(0)
+except ImportError as e:
+    print(f'ERROR: Failed to import library: {e}')
+    sys.exit(1)
+except Exception as e:
+    print(f'ERROR: Unexpected error: {e}')
+    sys.exit(1)
+"
+    
+    print_verbose "🧪 Testing Python library imports..."
+    
+    if sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" >/dev/null 2>&1; then
+        print_success "Python libraries verified successfully"
+        return 0
+    else
+        print_error "Python library verification failed"
+        if [ "$VERBOSE" = true ]; then
+            print_verbose "Library test output:"
+            sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" || true
+        fi
+        return 1
+    fi
+}
+
 # Function to check if I2C is enabled
 check_i2c_enabled() {
     print_verbose "🔍 Checking if I2C interface is enabled..."
     
     if ! lsmod | grep -q i2c_bcm2835; then
-        print_warning "🔧 I2C interface is not enabled. Please enable it manually using 'sudo raspi-config'"
-        print_warning "📋 Go to: 3 Interfacing Options -> I5 I2C -> Yes -> Ok -> Finish"
-        read -p "⏳ Press Enter after enabling I2C and rebooting..." < /dev/tty
+        if [ "$UNATTENDED" = true ]; then
+            print_warning "🔧 I2C interface is not enabled. Attempting to enable automatically..."
+            # Enable I2C automatically in unattended mode
+            sudo raspi-config nonint do_i2c 0 >/dev/null 2>&1 || {
+                print_error "Failed to enable I2C automatically"
+                print_error "💡 Please enable I2C manually using 'sudo raspi-config'"
+                return 1
+            }
+            print_success "I2C enabled automatically"
+        else
+            print_warning "I2C interface is not enabled. Please enable it manually using 'sudo raspi-config'"
+            print_warning "Go to: 3 Interfacing Options -> I5 I2C -> Yes -> Ok -> Finish"
+            read -p "⏳ Press Enter after enabling I2C and rebooting..." < /dev/tty
+        fi
     else
         print_verbose "✅ I2C interface is enabled"
     fi
@@ -404,10 +492,19 @@ main() {
         print_verbose "📋 Script arguments: $*"
     fi
     
+    if [ "$UNATTENDED" = true ]; then
+        print_status "Running in unattended mode with default settings"
+        print_verbose "Unattended mode: using monitor.py as default script"
+        print_verbose "Unattended mode: will auto-reboot after installation"
+    fi
+    
     print_status "🚀 Starting OLED Stats Display installation..."
     
     # Check if running on Raspberry Pi
     check_raspberry_pi
+    
+    # Check Pi model compatibility
+    check_pi_compatibility
     
     # Get the actual username
     USERNAME=$(get_username)
@@ -461,12 +558,11 @@ main() {
     sudo -u "$USERNAME" python3 -m venv stats_env --system-site-packages
     print_success "🐍 Virtual environment created"
     
-    # Step 4: Skip Blinka installer and install libraries directly
+    # Step 4: Install Python libraries
     print_status "📦 Installing required Python libraries..."
     print_verbose "📦 Installing libraries directly in virtual environment..."
     
     if [ "$VERBOSE" = true ]; then
-        # Install libraries directly without the problematic Blinka installer
         sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install --upgrade adafruit-blinka"
         sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install adafruit-circuitpython-ssd1306"
         sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install psutil"
@@ -479,6 +575,11 @@ main() {
     fi
     
     print_success "🐍 Python libraries installed"
+    
+    # Verify Python library installation
+    if ! verify_python_libraries; then
+        print_warning "Library verification failed, but continuing installation..."
+    fi
     
     # Step 5: Clone the repository
     print_status "📥 Downloading OLED Stats scripts..."
@@ -534,33 +635,41 @@ main() {
     # Step 7: Choose and test the scripts
     print_status "🔄️ Selecting OLED display script..."
     
-    # Choose which script to run
-    echo ""
-    echo -e "$(c_primary)╔════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "$(c_primary)║$(c_secondary)                      📟 SCRIPT SELECTION                       $(c_primary)║${NC}"
-    echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)1)${NC} stats.py       - Simple text-based display                  $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)2)${NC} monitor.py     - Display with icons                         $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)3)${NC} psutilstats.py - Enhanced compatibility                     $(c_primary)║${NC}"
-    echo -e "$(c_primary)╚════════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-    read -p "🎯 Which script would you like to use as default? (1-3): " SCRIPT_CHOICE < /dev/tty
-    
-    case $SCRIPT_CHOICE in
-        1)
-            DEFAULT_SCRIPT="stats.py"
-            ;;
-        2)
-            DEFAULT_SCRIPT="monitor.py"
-            ;;
-        3)
-            DEFAULT_SCRIPT="psutilstats.py"
-            ;;
-        *)
-            print_warning "⚠️  Invalid choice, using psutilstats.py as default"
-            DEFAULT_SCRIPT="psutilstats.py"
-            ;;
-    esac
+    if [ "$UNATTENDED" = true ]; then
+        # Use default script in unattended mode
+        DEFAULT_SCRIPT="monitor.py"
+        print_status "Unattended mode: Using monitor.py"
+    else
+        # Interactive script selection
+        echo ""
+        echo -e "$(c_primary)╔════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "$(c_primary)║$(c_secondary)                      📟 SCRIPT SELECTION                       $(c_primary)║${NC}"
+        echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
+        echo -e "$(c_primary)║${NC} $(c_special)1)${NC} stats.py       - Simple text-based display                  $(c_primary)║${NC}"
+        echo -e "$(c_primary)║${NC} $(c_special)2)${NC} monitor.py     - Display with icons                         $(c_primary)║${NC}"
+        echo -e "$(c_primary)║${NC} $(c_special)3)${NC} psutilstats.py - Enhanced compatibility                     $(c_primary)║${NC}"
+        echo -e "$(c_primary)╚════════════════════════════════════════════════════════════════╝${NC}"
+        echo ""
+        
+        read -p "🎯 Which script would you like to use as default? (1-3): " SCRIPT_CHOICE < /dev/tty
+        SCRIPT_CHOICE=${SCRIPT_CHOICE:-$DEFAULT_SCRIPT_CHOICE}
+        
+        case $SCRIPT_CHOICE in
+            1)
+                DEFAULT_SCRIPT="stats.py"
+                ;;
+            2)
+                DEFAULT_SCRIPT="monitor.py"
+                ;;
+            3)
+                DEFAULT_SCRIPT="psutilstats.py"
+                ;;
+            *)
+                print_warning "Invalid choice, using monitor.py as default"
+                DEFAULT_SCRIPT="monitor.py"
+                ;;
+        esac
+    fi
     
     print_verbose "🎯 Selected script: $DEFAULT_SCRIPT"
     
@@ -636,21 +745,26 @@ EOF
     echo -e "$(c_primary)${NC} - Script version: $SCRIPT_VERSION${NC}"
     echo -e "$(c_primary)${NC} - System updated${NC}"
     echo -e "$(c_primary)${NC} - Required packages installed${NC}"
+    echo -e "$(c_primary)${NC} - Python libraries verified${NC}"
     echo -e "$(c_primary)${NC} - Virtual environment created at: $HOME_DIR/stats_env${NC}"
     echo -e "$(c_primary)${NC} - Scripts installed at: $HOME_DIR/rpi_oled_stats${NC}"
     echo -e "$(c_primary)${NC} - Default script set to: $DEFAULT_SCRIPT${NC}"
     echo -e "$(c_primary)${NC} - Auto-start configured with 30-second boot delay${NC}"
-    echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
-    echo -e "$(c_primary)$(c_accent)                          MANUAL COMMANDS${NC}"
-    echo -e ""
-    echo -e "$(c_primary)${NC} 🚀 Start manually:${NC}"
-    echo -e "$(c_primary)${NC}  ╰  $HOME_DIR/oled_display_start.sh${NC}"
-    echo -e ""
-    echo -e "$(c_primary)${NC} ⚙️ Change script:${NC}"
-    echo -e "$(c_primary)${NC}  ╰  Edit $HOME_DIR/oled_display_start.sh${NC}"
-    echo -e ""
-    echo -e "$(c_primary)${NC} 🔄 The display will start automatically 30 seconds after boot.${NC}"
-    echo -e "$(c_primary)${NC}  ╰  If you need to change this delay, edit the cron job by running: sudo crontab -e${NC}"
+    
+    if [ "$UNATTENDED" = false ]; then
+        echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
+        echo -e "$(c_primary)$(c_accent)                          MANUAL COMMANDS${NC}"
+        echo -e ""
+        echo -e "$(c_primary)${NC} 🚀 Start manually:${NC}"
+        echo -e "$(c_primary)${NC}  ╰  $HOME_DIR/oled_display_start.sh${NC}"
+        echo -e ""
+        echo -e "$(c_primary)${NC} ⚙️ Change script:${NC}"
+        echo -e "$(c_primary)${NC}  ╰  Edit $HOME_DIR/oled_display_start.sh${NC}"
+        echo -e ""
+        echo -e "$(c_primary)${NC} 🔄 The display will start automatically 30 seconds after boot.${NC}"
+        echo -e "$(c_primary)${NC}  ╰  If you need to change this delay, edit the cron job by running: sudo crontab -e${NC}"
+    fi
+    
     echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
     echo -e "$(c_primary)$(c_gold)                            💚 CREDITS${NC}"
     echo -e ""
@@ -668,14 +782,21 @@ EOF
         print_verbose "💾 Disk space available: $(df -h $HOME_DIR | tail -1 | awk '{print $4}')"
     fi
     
-    read -p "🔄 Would you like to reboot now to start the display? (y/n): " REBOOT_CHOICE < /dev/tty
-    
-    if [[ $REBOOT_CHOICE =~ ^[Yy]$ ]]; then
-        print_status "🔄 Rebooting system..."
+    if [ "$UNATTENDED" = true ]; then
+        print_status "Unattended mode: Auto-rebooting in 10 seconds..."
+        sleep 10
         sudo reboot
     else
-        print_status "🚀 You can start the display manually with: $HOME_DIR/oled_display_start.sh"
-        print_status "🔄 Or reboot to start automatically: sudo reboot"
+        read -p "🔄 Would you like to reboot now to start the display? (y/n): " REBOOT_CHOICE < /dev/tty
+        REBOOT_CHOICE=${REBOOT_CHOICE:-n}
+        
+        if [[ $REBOOT_CHOICE =~ ^[Yy]$ ]]; then
+            print_status "🔄 Rebooting system..."
+            sudo reboot
+        else
+            print_status "🚀 You can start the display manually with: $HOME_DIR/oled_display_start.sh"
+            print_status "🔄 Or reboot to start automatically: sudo reboot"
+        fi
     fi
 }
 
