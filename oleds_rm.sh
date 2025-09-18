@@ -3,6 +3,7 @@
 # Removes all files, directories, virtualenv, and crontab entries created by autoinstall_oled_stats.sh
 
 set -e
+cd "$HOME" || exit 1
 
 echo "OLED Stats Cleanup Script"
 echo "------------------------"
