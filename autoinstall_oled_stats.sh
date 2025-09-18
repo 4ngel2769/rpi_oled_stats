@@ -259,7 +259,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
-        --version)
+        -V|--version)
             show_version
             ;;
         -h|--help)
