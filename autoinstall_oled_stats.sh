@@ -295,7 +295,7 @@ print_error() {
 
 print_verbose() {
     if [ "$VERBOSE" = true ]; then
-        echo -e "$(c_highlight)[< VERBOSE]${NC} $1"
+        echo -e "$(c_highlight)[<< VERBOSE]${NC} $1"
     fi
 }
 
