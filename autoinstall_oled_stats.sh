@@ -281,7 +281,7 @@ done
 
 # Function to print colored output
 print_status() {
-    echo -e "$(c_info)[📋 INFO >>]${NC} $1"
+    echo -e "$(c_info)[<< INFO >>]${NC} $1"
 }
 
 print_success() {
@@ -298,7 +298,7 @@ print_error() {
 
 print_verbose() {
     if [ "$VERBOSE" = true ]; then
-        echo -e "$(c_highlight)[🔍 VERBOSE]${NC} $1"
+        echo -e "$(c_highlight)[ VERBOSE ]${NC} $1"
     fi
 }
 
@@ -344,10 +344,10 @@ check_raspberry_pi() {
     if [ "$VERBOSE" = true ]; then
         local pi_model
         pi_model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
-        print_verbose "🍓 Detected: $pi_model"
+        print_verbose "Detected: $pi_model"
     fi
     
-    print_success "🍓 Raspberry Pi detected"
+    print_success "Raspberry Pi detected"
 }
 
 # Function to check if I2C is enabled
@@ -366,7 +366,7 @@ check_i2c_enabled() {
 # Function to detect OLED display
 detect_oled() {
     print_status "🔍 Checking for OLED display at address 0x3c..."
-    print_verbose "🔧 Running i2cdetect to scan for devices..."
+    print_verbose "🩺 Running i2cdetect to scan for devices..."
     
     if [ "$VERBOSE" = true ]; then
         echo "📊 I2C scan results:"
@@ -408,8 +408,8 @@ main() {
     
     if [ "$VERBOSE" = true ]; then
         print_verbose "🔧 Verbose mode enabled"
-        print_verbose "🎨 Using $COLOR_SCHEME theme"
-        print_verbose "📋 Script arguments:" "$@"
+        print_verbose "🎨 Using [$COLOR_SCHEME] theme"
+        print_verbose "📋 Script arguments: $*"
     fi
     
     print_status "🚀 Starting OLED Stats Display installation..."
@@ -427,7 +427,7 @@ main() {
     print_verbose "👤 Current user: $(whoami)"
     
     # Step 1: Update system
-    print_status "⚙️  Updating system packages..."
+    print_status "⚙️ Updating system packages..."
     if [ "$VERBOSE" = true ]; then
         sudo apt-get update
         # sudo apt-get upgrade -y
@@ -438,7 +438,7 @@ main() {
     print_success "📦 System updated"
 
     # Step 2: Install required packages
-    print_status "⚙️  Installing required packages..."
+    print_status "📦 Installing required packages..."
     print_verbose "📦 Installing: python3-pip python3-venv git i2c-tools"
     
     if [ "$VERBOSE" = true ]; then
@@ -460,8 +460,8 @@ main() {
     
     # Remove existing virtual environment if it exists
     if [ -d "stats_env" ]; then
-        print_warning "🗑️  Existing stats_env found, removing..."
-        print_verbose "🗑️  Removing directory: $HOME_DIR/stats_env"
+        print_warning "🗑️ Existing stats_env found, removing..."
+        print_verbose "🗑️ Removing directory: $HOME_DIR/stats_env"
         rm -rf stats_env
     fi
     
@@ -470,7 +470,7 @@ main() {
     print_success "🐍 Virtual environment created"
     
     # Step 4: Skip Blinka installer and install libraries directly
-    print_status "⚙️  Installing required Python libraries..."
+    print_status "📦 Installing required Python libraries..."
     print_verbose "📦 Installing libraries directly in virtual environment..."
     
     if [ "$VERBOSE" = true ]; then
@@ -494,8 +494,8 @@ main() {
     
     # Remove existing directory if it exists
     if [ -d "rpi_oled_stats" ]; then
-        print_warning "🗑️  Existing rpi_oled_stats directory found, removing..."
-        print_verbose "🗑️  Removing directory: $HOME_DIR/rpi_oled_stats"
+        print_warning "🗑️ Existing rpi_oled_stats directory found, removing..."
+        print_verbose "🗑️ Removing directory: $HOME_DIR/rpi_oled_stats"
         sudo rm -rf rpi_oled_stats
     fi
     
@@ -540,7 +540,7 @@ main() {
     fi
     
     # Step 7: Choose and test the scripts
-    print_status "🎮 Selecting OLED display script..."
+    print_status "🔄️ Selecting OLED display script..."
     
     # Choose which script to run
     echo ""
@@ -548,7 +548,7 @@ main() {
     echo -e "$(c_primary)║$(c_secondary)                      📱 SCRIPT SELECTION                       $(c_primary)║${NC}"
     echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
     echo -e "$(c_primary)║${NC} $(c_special)1)${NC} 📝 stats.py - Simple text-based display                     $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} $(c_special)2)${NC} 🎨 monitor.py - Display with icons                          $(c_primary)║${NC}"
+    echo -e "$(c_primary)║${NC} $(c_special)2)${NC} 📟 monitor.py - Display with icons                          $(c_primary)║${NC}"
     echo -e "$(c_primary)║${NC} $(c_special)3)${NC} ⚡ psutilstats.py - Enhanced compatibility                  $(c_primary)║${NC}"
     echo -e "$(c_primary)╚════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
@@ -615,7 +615,7 @@ EOF
     print_success "📝 Startup script created"
     
     # Step 9: Setup auto-start
-    print_status "⚙️  Setting up auto-start on boot..."
+    print_status "⚙️ Setting up auto-start on boot..."
     
     # Add to crontab for the user
     CRON_JOB="@reboot $HOME_DIR/oled_display_start.sh &"
@@ -640,33 +640,33 @@ EOF
     echo ""
     echo -e "$(c_primary)╔════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "$(c_primary)║$(c_special)                    🎉 INSTALLATION COMPLETE!                   $(c_primary)║${NC}"
-    echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Script version: $SCRIPT_VERSION                                        $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Installation script by: $SCRIPT_AUTHOR              $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Original OLED Stats code by: $ORIGINAL_AUTHOR           $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ System updated                                              $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Required packages installed                                 $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Virtual environment created at: $HOME_DIR/stats_env          $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Scripts installed at: $HOME_DIR/rpi_oled_stats               $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Default script set to: $DEFAULT_SCRIPT                           $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} ✅ Auto-start configured with 30-second boot delay             $(c_primary)║${NC}"
-    echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "$(c_primary)║$(c_accent)                      🛠️  MANUAL COMMANDS                       $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}                                                                $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} 🚀 Start manually:                                             $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}    $HOME_DIR/oled_display_start.sh                              $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}                                                                $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} 🔧 Change script:                                              $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}    Edit $HOME_DIR/oled_display_start.sh                         $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}                                                                $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} 🔄 The display will start automatically 30 seconds             $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}    after boot.                                                 $(c_primary)║${NC}"
-    echo -e "$(c_primary)╠════════════════════════════════════════════════════════════════╣${NC}"
-    echo -e "$(c_primary)║$(c_gold)                            🏆 CREDITS                          $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC}                                                                $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} 🛠️  Installation script: $SCRIPT_AUTHOR                $(c_primary)║${NC}"
-    echo -e "$(c_primary)║${NC} 🎨 Original OLED Stats: $ORIGINAL_AUTHOR                   $(c_primary)║${NC}"
     echo -e "$(c_primary)╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo -e "$(c_primary)${NC} ✅ Script version: $SCRIPT_VERSION${NC}"
+    echo -e "$(c_primary)${NC} ✅ Installation script by: $SCRIPT_AUTHOR${NC}"
+    echo -e "$(c_primary)${NC} ✅ Original OLED Stats code by: $ORIGINAL_AUTHOR${NC}"
+    echo -e "$(c_primary)${NC} ✅ System updated${NC}"
+    echo -e "$(c_primary)${NC} ✅ Required packages installed${NC}"
+    echo -e "$(c_primary)${NC} ✅ Virtual environment created at: $HOME_DIR/stats_env${NC}"
+    echo -e "$(c_primary)${NC} ✅ Scripts installed at: $HOME_DIR/rpi_oled_stats${NC}"
+    echo -e "$(c_primary)${NC} ✅ Default script set to: $DEFAULT_SCRIPT${NC}"
+    echo -e "$(c_primary)${NC} ✅ Auto-start configured with 30-second boot delay${NC}"
+    echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
+    echo -e "$(c_primary)$(c_accent)                      🛠️  MANUAL COMMANDS${NC}"
+    echo -e "$(c_primary)${NC}${NC}"
+    echo -e "$(c_primary)${NC} 🚀 Start manually:${NC}"
+    echo -e "$(c_primary)${NC}    $HOME_DIR/oled_display_start.sh${NC}"
+    echo -e "$(c_primary)${NC}${NC}"
+    echo -e "$(c_primary)${NC} 🔧 Change script:${NC}"
+    echo -e "$(c_primary)${NC}    Edit $HOME_DIR/oled_display_start.sh${NC}"
+    echo -e "$(c_primary)${NC}${NC}"
+    echo -e "$(c_primary)${NC} 🔄 The display will start automatically 30 seconds${NC}"
+    echo -e "$(c_primary)${NC}    after boot.${NC}"
+    echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
+    echo -e "$(c_primary)$(c_gold)                            🏆 CREDITS${NC}"
+    echo -e "$(c_primary)${NC}${NC}"
+    echo -e "$(c_primary)${NC} 🛠️  Installation script: $SCRIPT_AUTHOR${NC}"
+    echo -e "$(c_primary)${NC} 🎨 Original OLED Stats: $ORIGINAL_AUTHOR${NC}"
+    echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
     echo ""
     
     if [ "$VERBOSE" = true ]; then
