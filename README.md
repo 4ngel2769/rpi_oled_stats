@@ -20,9 +20,7 @@ The script is pre-configured for 128x64 I2C OLED Display, but can easily be modi
   </tr>
   </table>
 
-## Auto-Installation Script
-
-🚀 <strong>Click here for automated installation guide</strong> (Recommended)
+## 🚀 Auto-Installation Script (Recommended)
 
 ### `>` Quick & Easy Installation
 
