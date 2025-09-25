@@ -29,7 +29,7 @@ For the fastest setup experience, use the installation script that handles every
 > [!TIP]
 > The average setup time on a Raspberry Pi 3B v1.2 is approximately 5 minutes.
 
-#### 🎯 **One-Line Installation**
+#### **One-Line Installation**
 
 1. Run this command in your terminal to start the installation:
 ```bash
@@ -90,7 +90,9 @@ curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoi
 - ✅ **Auto-Start**: Configures automatic startup on boot with 30-second delay
 - ✅ **Testing**: Tests your selected script for 5 seconds to verify functionality
 
-### Available Themes (🎨):
+### Available Themes:
+
+The installation script also comes with 3 themes.
 
 | Theme | Description | Best For |
 |-------|-------------|----------|
@@ -98,7 +100,7 @@ curl -fsSL https://raw.githubusercontent.com/4ngel2769/rpi_oled_stats/main/autoi
 | **2 - HTB** | HackTheBox style | Security enthusiasts, bright displays |
 | **3 - Pastel** | Soft and pleasant colors | Easy on the eyes |
 
-### 📋 Prerequisites:
+### Prerequisites:
 
 > [!IMPORTANT]  
 > Before running the installation script, ensure your OLED display is properly connected to the Raspberry Pi I2C pins (GND, VCC, SDA, SCL).
