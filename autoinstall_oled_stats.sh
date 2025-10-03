@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.14.1
+# Version: v0.14.2
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,7 +13,7 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.14.1"
+SCRIPT_VERSION="v0.14.2"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
@@ -441,11 +441,11 @@ check_pi_compatibility() {
     print_verbose "Detected: $pi_model"
     
     # Check for known compatible models
-    if echo "$pi_model" | grep -qE "(Raspberry Pi (2|3|4|5|Zero|Zero 2))"; then
+    if echo "$pi_model" | grep -qE "(Raspberry Pi (3|4|5|Zero|Zero 2))"; then
         print_success "Pi model is compatible with OLED Stats"
         if [ "$VERBOSE" = true ]; then
             case "$pi_model" in
-                *"Pi 2"*) print_verbose "Pi 2 detected" ;;
+                # *"Pi 2"*) print_verbose "Pi 2 detected" ;;
                 *"Pi 3"*) print_verbose "Pi 3 detected" ;;
                 *"Pi 4"*) print_verbose "Pi 4 detected" ;;
                 *"Pi 5"*) print_verbose "Pi 5 detected" ;;
@@ -455,6 +455,8 @@ check_pi_compatibility() {
     else
         print_warning "⚠️  Unknown Pi model. Script may work but is not tested on this model."
     fi
+    
+    return 0
 }
 
 # Verify Python library installation
