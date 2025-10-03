@@ -592,11 +592,13 @@ main() {
     
     # Check if running on Raspberry Pi
     check_raspberry_pi
+    
+    # Check Pi model compatibility (no increment, part of same step)
+    check_pi_compatibility
+    
+    # Now increment after both checks are done
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
-    
-    # Check Pi model compatibility
-    check_pi_compatibility
     
     # Get the actual username
     USERNAME=$(get_username)
@@ -607,15 +609,13 @@ main() {
     print_verbose "📁 Current working directory: $(pwd)"
     print_verbose "👤 Current user: $(whoami)"
     
-    # Step 1: Update system (conditional)
+    # Step 2: Update system (conditional)
     if [ "$SKIP_APT_UPDATE" = false ]; then
         print_status "⚙️ Updating system packages..."
         if [ "$VERBOSE" = true ]; then
             sudo apt-get update
-            # sudo apt-get upgrade -y
         else
             sudo apt-get update -qq
-            # sudo apt-get upgrade -y -qq
         fi
         print_success "📦 System updated"
     else
@@ -624,7 +624,7 @@ main() {
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
 
-    # Step 2: Install required packages
+    # Step 3: Install required packages
     print_status "📦 Installing required packages..."
     print_verbose "📦 Installing: python3-pip python3-venv git i2c-tools"
     
@@ -642,9 +642,12 @@ main() {
     # Check I2C
     check_i2c_enabled
     
-    # Step 3: Create virtual environment
+    # Step 4: Create virtual environment
     print_status "🐍 Creating Python virtual environment..."
-    cd "$HOME_DIR"
+    cd "$HOME_DIR" || {
+        print_error "Failed to change to directory: $HOME_DIR"
+        exit 1
+    }
     print_verbose "📁 Changed to directory: $HOME_DIR"
     
     # Remove existing virtual environment if it exists
@@ -660,7 +663,7 @@ main() {
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
-    # Step 4: Install Python libraries
+    # Step 5: Install Python libraries
     print_status "📦 Installing required Python libraries..."
     print_verbose "📦 Installing libraries directly in virtual environment..."
     
@@ -687,9 +690,12 @@ main() {
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
-    # Step 5: Clone the repository
+    # Step 6: Clone the repository
     print_status "📥 Downloading OLED Stats scripts..."
-    cd "$HOME_DIR"
+    cd "$HOME_DIR" || {
+        print_error "Failed to change to directory: $HOME_DIR"
+        exit 1
+    }
     
     # Remove existing directory if it exists
     if [ -d "rpi_oled_stats" ]; then
@@ -705,7 +711,10 @@ main() {
         sudo -u "$USERNAME" git clone https://github.com/4ngel2769/rpi_oled_stats.git rpi_oled_stats >/dev/null 2>&1
     fi
     
-    cd rpi_oled_stats
+    cd rpi_oled_stats || {
+        print_error "Failed to change to directory: $HOME_DIR/rpi_oled_stats"
+        exit 1
+    }
     print_verbose "📁 Changed to directory: $HOME_DIR/rpi_oled_stats"
     
     # Download font files
@@ -725,22 +734,17 @@ main() {
         print_verbose "✅ lineawesome-webfont.ttf already exists"
     fi
     
-    if [ "$VERBOSE" = true ]; then
-        print_verbose "📁 Directory contents:"
-        ls -la
-    fi
-    
     print_success "📦 Scripts downloaded"
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
-    # Step 6: Detect OLED display
+    # Step 7: Detect OLED display
     if ! detect_oled; then
         print_warning "⚠️  OLED display not detected. The script will still create the startup configuration."
         print_warning "🔧 Please check your connections and the display should work after reboot."
     fi
     
-    # Step 7: Choose and test the scripts
+    # Step 8: Choose and test the scripts
     print_status "🔄️ Selecting OLED display script..."
     
     if [ "$UNATTENDED" = true ] || [ "$SILENT" = true ]; then
@@ -777,7 +781,7 @@ main() {
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
     # Test the selected script for 5 seconds if OLED was detected
-    if sudo i2cdetect -y 1 | grep -q "3c" && [ "$SILENT" = false ]; then
+    if sudo i2cdetect -y 1 2>/dev/null | grep -q "3c" && [ "$SILENT" = false ]; then
         print_status "🧪 Testing $DEFAULT_SCRIPT for 5 seconds..."
         print_verbose "🧪 Running test command: timeout 5 python3 $DEFAULT_SCRIPT"
         
@@ -788,10 +792,10 @@ main() {
         fi
         print_success "🧪 Script test completed"
     else
-        print_status "⏭️ Skipping script test (OLED not detected)"
+        print_status "⏭️ Skipping script test (OLED not detected or silent mode)"
     fi
     
-    # Step 8: Create startup script
+    # Step 9: Create startup script
     print_status "📝 Creating startup script..."
     print_verbose "📝 Creating startup script at: $HOME_DIR/oled_display_start.sh"
     
@@ -812,16 +816,11 @@ EOF
     chmod +x "$HOME_DIR/oled_display_start.sh"
     chown "$USERNAME:$USERNAME" "$HOME_DIR/oled_display_start.sh"
     
-    if [ "$VERBOSE" = true ]; then
-        print_verbose "📝 Startup script contents:"
-        cat "$HOME_DIR/oled_display_start.sh"
-    fi
-    
     print_success "📝 Startup script created"
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
-    # Step 9: Setup auto-start
+    # Step 10: Setup auto-start
     print_status "⚙️ Setting up auto-start on boot..."
     
     # Add to crontab for the user
@@ -833,23 +832,16 @@ EOF
         print_verbose "⏰ Adding cron job for auto-start..."
         (sudo -u "$USERNAME" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$USERNAME" crontab -
         print_success "⏰ Auto-start configured"
-        
-        if [ "$VERBOSE" = true ]; then
-            print_verbose "⏰ Current crontab for $USERNAME:"
-            sudo -u "$USERNAME" crontab -l
-        fi
     else
         print_warning "⏰ Auto-start already configured"
     fi
-    
-    # Step 10: Final instructions
     ((CURRENT_STEP++))
     [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
     
     # Completion message
     if [ "$SILENT" = true ]; then
         echo ""  # New line after progress bar
-        echo "🎉 Installation completed successfully!"
+        echo "✅ Installation completed successfully!"
     else
         print_success "🎉 Installation completed successfully!"
         echo ""
@@ -877,7 +869,7 @@ EOF
             echo -e "$(c_primary)${NC}  ╰  Edit $HOME_DIR/oled_display_start.sh${NC}"
             echo -e ""
             echo -e "$(c_primary)${NC} 🔄 The display will start automatically 30 seconds after boot.${NC}"
-            echo -e "$(c_primary)${NC}  ╰  If you need to change this delay, edit the cron job by running: sudo crontab -e${NC}"
+            echo -e "$(c_primary)${NC}  ╰  To change delay, edit: crontab -e${NC}"
         fi
         
         echo -e "$(c_primary)◂════════════════════════════════════════════════════════════════▸${NC}"
