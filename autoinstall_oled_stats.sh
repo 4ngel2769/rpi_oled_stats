@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.14
+# Version: v0.14.1
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,7 +13,7 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.14"
+SCRIPT_VERSION="v0.14.1"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
@@ -22,7 +22,7 @@ VERBOSE=false
 UNATTENDED=false
 SKIP_APT_UPDATE=false
 SILENT=false
-AUTO_REBOOT=true  # Auto-reboot behavior (works for both normal and unattended)
+AUTO_REBOOT=true             # Auto-reboot behavior (works for both normal and unattended)
 DEFAULT_SCRIPT_CHOICE=2      # Default to monitor.py for unattended mode
 ROTATION=1                   # Default rotation (1 = normal, 2 = upside down)
 
@@ -212,15 +212,15 @@ show_help() {
     echo -e "${NC} curl -fsSL [URL] | bash [OPTIONS]${NC}"
     echo -e ""
     echo -e "${NC} $(c_accent)⚙️  OPTIONS:${NC}"
-    echo -e "${NC} $(c_special)-v, --verbose${NC}       Enable detailed output${NC}"
-    echo -e "${NC} $(c_special)-u, --unattended${NC}    Run in non-interactive mode (uses defaults)${NC}"
-    echo -e "${NC} $(c_special)-s, --silent${NC}        Silent mode with progress bar only${NC}"
-    echo -e "${NC} $(c_special)--skip-update${NC}       Skip system package updates${NC}"
-    echo -e "${NC} $(c_special)--no-reboot${NC}         Disable automatic reboot${NC}"
-    echo -e "${NC} $(c_special)-t, --theme <1-3>${NC}   Set color theme (1=Standard, 2=HTB, 3=Pastel)${NC}"
-    echo -e "${NC} $(c_special)-r, --rotation <1-2>${NC} Set display rotation (1=Normal, 2=Upside Down)${NC}"
-    echo -e "${NC} $(c_special)-V, --version${NC}       Show version information${NC}"
-    echo -e "${NC} $(c_special)-h, --help${NC}          Show this help message${NC}"
+    echo -e "${NC} $(c_special)-v, --verbose${NC}           Enable detailed output${NC}"
+    echo -e "${NC} $(c_special)-u, --unattended${NC}        Run in non-interactive mode (uses defaults)${NC}"
+    echo -e "${NC} $(c_special)-s, --silent${NC}            Silent mode with progress bar only${NC}"
+    echo -e "${NC} $(c_special)-S, --skip-update${NC}       Skip system package updates${NC}"
+    echo -e "${NC} $(c_special)-N, --no-reboot${NC}         Disable automatic reboot${NC}"
+    echo -e "${NC} $(c_special)-t, --theme <1-3>${NC}       Set color theme (1=Standard, 2=HTB, 3=Pastel)${NC}"
+    echo -e "${NC} $(c_special)-r, --rotation <1-2>${NC}    Set display rotation (1=Normal, 2=Upside Down)${NC}"
+    echo -e "${NC} $(c_special)-V, --version${NC}           Show version information${NC}"
+    echo -e "${NC} $(c_special)-h, --help${NC}              Show this help message${NC}"
     echo -e ""
     echo -e "${NC} $(c_secondary)🎨 AVAILABLE THEMES:${NC}"
     echo -e "${NC} $(c_special)1${NC} - STANDARD  (Classic terminal colors)${NC}"
@@ -345,8 +345,10 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Override verbose if silent is enabled
-if [ "$SILENT" = true ]; then
+# Override silent/verbose conflicts - verbose takes priority
+if [ "$VERBOSE" = true ]; then
+    SILENT=false
+elif [ "$SILENT" = true ]; then
     VERBOSE=false
 fi
 
