@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.12
+# Version: v0.13
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,7 +13,7 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.12"
+SCRIPT_VERSION="v0.13"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
@@ -25,6 +25,7 @@ SKIP_APT_UPDATE=false
 AUTO_REBOOT_UNATTENDED=true  # Control auto-reboot in unattended mode
 UNATTENDED_REBOOT_DELAY=10   # Delay before auto-reboot in unattended mode (seconds)
 DEFAULT_SCRIPT_CHOICE=2      # Default to monitor.py for unattended mode
+ROTATION=1                   # Default rotation (1 = normal, 2 = upside down)
 
 # ================================================================================
 # THEME CONFIGURATION
@@ -215,6 +216,7 @@ show_help() {
     echo -e "${NC} $(c_special)-v, --verbose${NC}      Enable detailed output${NC}"
     echo -e "${NC} $(c_special)-u, --unattended${NC}   Run in non-interactive mode (uses defaults)${NC}"
     echo -e "${NC} $(c_special)-t, --theme <1-3>${NC}  Set color theme (1=Standard, 2=HTB, 3=Pastel)${NC}"
+    echo -e "${NC} $(c_special)-r, --rotation <1-2>${NC} Set display rotation (1=Normal, 2=Upside Down)${NC}"
     echo -e "${NC} $(c_special)-V, --version${NC}      Show version information${NC}"
     echo -e "${NC} $(c_special)-h, --help${NC}         Show this help message${NC}"
     echo -e ""
@@ -273,6 +275,25 @@ while [[ $# -gt 0 ]]; do
             else
                 echo "❌ Error: --theme requires a valid number (1-3)"
                 echo "   1 = Standard, 2 = HTB, 3 = Pastel"
+                exit 1
+            fi
+            ;;
+        -r|--rotation)
+            if [[ -n $2 && $2 =~ ^[12]$ ]]; then
+                ROTATION="$2"
+                shift 2
+            else
+                echo "❌ Error: --rotation requires 1 (normal) or 2 (upside down)"
+                exit 1
+            fi
+            ;;
+        --rotation=*)
+            rotation_value="${1#*=}"
+            if [[ $rotation_value =~ ^[12]$ ]]; then
+                ROTATION="$rotation_value"
+                shift
+            else
+                echo "❌ Error: --rotation requires 1 (normal) or 2 (upside down)"
                 exit 1
             fi
             ;;
@@ -704,6 +725,7 @@ main() {
 # Original Code: $ORIGINAL_AUTHOR
 # Wait for system to fully boot
 sleep 30
+export OLED_ROTATION="$ROTATION"
 source $HOME_DIR/stats_env/bin/activate
 cd $HOME_DIR/rpi_oled_stats
 python3 $DEFAULT_SCRIPT
