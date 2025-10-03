@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.14.2
+# Version: v0.14.3
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,7 +13,7 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.14.2"
+SCRIPT_VERSION="v0.14.3"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
@@ -261,6 +261,14 @@ show_progress() {
     printf "%${completed}s" | tr ' ' '='
     printf "%${remaining}s" | tr ' ' '-'
     printf "] %d%%" $percentage
+}
+
+# Helper function to update progress (prevents set -e from breaking again)
+update_progress() {
+    ((CURRENT_STEP++)) || true
+    if [ "$SILENT" = true ]; then
+        show_progress $CURRENT_STEP $TOTAL_STEPS
+    fi
 }
 
 print_silent() {
@@ -599,8 +607,7 @@ main() {
     check_pi_compatibility
     
     # Now increment after both checks are done
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Get the actual username
     USERNAME=$(get_username)
@@ -623,8 +630,7 @@ main() {
     else
         print_status "⏭️ Skipping system update (--skip-update flag enabled)"
     fi
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
 
     # Step 3: Install required packages
     print_status "📦 Installing required packages..."
@@ -638,8 +644,7 @@ main() {
         sudo apt-get install --upgrade python3-setuptools -y >/dev/null 2>&1
     fi
     print_success "📦 Required packages installed"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Check I2C
     check_i2c_enabled
@@ -662,8 +667,7 @@ main() {
     print_verbose "🐍 Creating virtual environment with system site packages..."
     sudo -u "$USERNAME" python3 -m venv stats_env --system-site-packages
     print_success "🐍 Virtual environment created"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Step 5: Install Python libraries
     print_status "📦 Installing required Python libraries..."
@@ -682,15 +686,13 @@ main() {
     fi
     
     print_success "🐍 Python libraries installed"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Verify Python library installation
     if ! verify_python_libraries; then
         print_warning "Library verification failed, but continuing installation..."
     fi
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Step 6: Clone the repository
     print_status "📥 Downloading OLED Stats scripts..."
@@ -737,8 +739,7 @@ main() {
     fi
     
     print_success "📦 Scripts downloaded"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Step 7: Detect OLED display
     if ! detect_oled; then
@@ -779,8 +780,7 @@ main() {
     fi
     
     print_verbose "🎯 Selected script: $DEFAULT_SCRIPT"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Test the selected script for 5 seconds if OLED was detected
     if sudo i2cdetect -y 1 2>/dev/null | grep -q "3c" && [ "$SILENT" = false ]; then
@@ -819,8 +819,7 @@ EOF
     chown "$USERNAME:$USERNAME" "$HOME_DIR/oled_display_start.sh"
     
     print_success "📝 Startup script created"
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Step 10: Setup auto-start
     print_status "⚙️ Setting up auto-start on boot..."
@@ -837,8 +836,7 @@ EOF
     else
         print_warning "⏰ Auto-start already configured"
     fi
-    ((CURRENT_STEP++))
-    [ "$SILENT" = true ] && show_progress $CURRENT_STEP $TOTAL_STEPS
+    update_progress
     
     # Completion message
     if [ "$SILENT" = true ]; then
