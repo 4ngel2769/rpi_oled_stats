@@ -556,16 +556,20 @@ detect_oled() {
 
 # Get username (handle both pi and custom usernames)
 get_username() {
-    if [ "$USER" = "root" ]; then
-        # If running as root, get the actual user
-        ACTUAL_USER=$(who am i | awk '{print $1}')
-        if [ -z "$ACTUAL_USER" ]; then
-            ACTUAL_USER="pi"  # Default fallback
-        fi
-    else
-        ACTUAL_USER="$USER"
+    # Prefer the original invoking user when script run via sudo
+    if [ -n "$SUDO_USER" ] && [ "$SUDO_USER" != "root" ]; then
+        echo "$SUDO_USER"
+        return 0
     fi
-    echo "$ACTUAL_USER"
+
+    # If running as root and no sudo user is present, return root
+    if [ "$USER" = "root" ]; then
+        echo "root"
+        return 0
+    fi
+
+    # Default: return the current user
+    echo "$USER"
 }
 
 # Main installation function
@@ -612,7 +616,11 @@ main() {
     
     # Get the actual username
     USERNAME=$(get_username)
-    HOME_DIR="/home/$USERNAME"
+    if [ "$USERNAME" = "root" ]; then
+        HOME_DIR="/root"
+    else
+        HOME_DIR="/home/$USERNAME"
+    fi
     
     print_status "👤 Installing for user: $USERNAME"
     print_status "🏠 Home directory: $HOME_DIR"
