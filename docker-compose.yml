@@ -13,6 +13,9 @@ services:
     privileged: true
     restart: unless-stopped
     environment:
+      # Force Blinka to detect Raspberry Pi in Docker
+      - BLINKA_FORCEBOARD=RASPBERRY_PI_4B
+      - BLINKA_FORCECHIP=BCM2711
       # Set OLED_ROTATION to 2 to rotate the display 180 degrees (default 1)
       - OLED_ROTATION=1
       # Optionally set your timezone

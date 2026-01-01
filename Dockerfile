@@ -1,4 +1,4 @@
-FROM python:3-slim
+FROM python:3.11-slim
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -13,6 +13,7 @@ RUN apt-get update && \
       iproute2 \
       zlib1g-dev \
       libjpeg-dev \
+      libgpiod2 \
       wget ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
@@ -21,6 +22,7 @@ RUN pip install --no-cache-dir \
       adafruit-circuitpython-ssd1306 \
       pillow \
       RPi.GPIO \
+      rpi-lgpio \
       gpiozero \
       smbus \
       psutil

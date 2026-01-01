@@ -323,19 +323,62 @@ bash # New shell to have the docker command immediatly available to you!
 sudo raspi-config nonint do_i2c 0 # Enable i2c
 ```
 
+#### Using Docker Compose (Recommended)
+
+Create a `compose.yml` file:
+
+```yaml
+services:
+  oled_stats:
+    image: ghcr.io/4ngel2769/rpi_oled_stats:latest
+    container_name: oled_stats
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/i2c-1:/dev/i2c-1
+    environment:
+      # REQUIRED: Force Blinka to detect Raspberry Pi hardware in Docker
+      # For Pi 5, use: RASPBERRY_PI_5 and BCM2712
+      # For Pi 4, use: RASPBERRY_PI_4B and BCM2711
+      # For Pi 3, use: RASPBERRY_PI_3B and BCM2837
+      # For Pi Zero 2W, use: RASPBERRY_PI_ZERO_2_W and BCM2837
+      - BLINKA_FORCEBOARD=RASPBERRY_PI_4B
+      - BLINKA_FORCECHIP=BCM2711
+      - OLED_ROTATION=1  # 1 = normal, 2 = upside down
+    command: ["status.py"]  # Or: stats.py, monitor.py, psutilstats.py
+```
+
+Then run:
+
+```bash
+docker compose up -d
+docker compose logs -f  # View logs
+```
+
+#### Using Docker Run
+
 To run the container with the default stats.py script:
 
 ```bash
-docker run -d --privileged --network=host --restart=on-failure --name OLED_Stats mklements/oled_stats
+docker run -d --privileged --network=host --restart=on-failure \
+  -e BLINKA_FORCEBOARD=RASPBERRY_PI_4B \
+  -e BLINKA_FORCECHIP=BCM2711 \
+  --name OLED_Stats ghcr.io/4ngel2769/rpi_oled_stats:latest
 ```
 
 But if you like to use a different one like `status.py`, you can do it like so:
 
 ```bash
-docker run -d --privileged --network=host --restart=on-failure --name OLED_Stats mklements/oled_stats status.py
+docker run -d --privileged --network=host --restart=on-failure \
+  -e BLINKA_FORCEBOARD=RASPBERRY_PI_4B \
+  -e BLINKA_FORCECHIP=BCM2711 \
+  --name OLED_Stats ghcr.io/4ngel2769/rpi_oled_stats:latest status.py
 ```
 
 You can change `status.py` to `psutilstats.py` or `monitor.py`.
+
+> [!IMPORTANT]
+> The `BLINKA_FORCEBOARD` and `BLINKA_FORCECHIP` environment variables are **required** for Docker. Without them, the Adafruit libraries cannot detect the Raspberry Pi hardware inside the container.
 
 ## Common Display Issues:
 
