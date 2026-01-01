@@ -266,7 +266,7 @@ show_progress() {
 
 # Helper function to update progress (prevents set -e from breaking again)
 update_progress() {
-    ((CURRENT_STEP++)) || true
+    CURRENT_STEP=$((CURRENT_STEP + 1))
     if [ "$SILENT" = true ]; then
         show_progress $CURRENT_STEP $TOTAL_STEPS
     fi
@@ -427,15 +427,31 @@ run_command() {
 # Function to check if running on Raspberry Pi
 check_raspberry_pi() {
     print_verbose "🔍 Checking if running on Raspberry Pi..."
-    if ! grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
-        print_error "🚫 This script is designed for Raspberry Pi only!"
-        exit 1
+    
+    # Check multiple sources for Pi detection
+    local is_pi=false
+    
+    # Method 1: /proc/device-tree/model (standard Raspberry Pi OS)
+    if [ -f /proc/device-tree/model ] && grep -q "Raspberry Pi" /proc/device-tree/model 2>/dev/null; then
+        is_pi=true
+        if [ "$VERBOSE" = true ]; then
+            local pi_model
+            pi_model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
+            print_verbose "Detected: $pi_model"
+        fi
+    # Method 2: /proc/cpuinfo (fallback for containers/HomeAssistant OS)
+    elif grep -qE "BCM2|Raspberry" /proc/cpuinfo 2>/dev/null; then
+        is_pi=true
+        print_verbose "Detected Raspberry Pi hardware via /proc/cpuinfo"
+    # Method 3: Check for specific ARM architecture common to Pi
+    elif uname -m | grep -qE "armv7l|aarch64" && [ -f /sys/firmware/devicetree/base/model ]; then
+        is_pi=true
+        print_verbose "Detected ARM device with devicetree (likely Raspberry Pi)"
     fi
     
-    if [ "$VERBOSE" = true ]; then
-        local pi_model
-        pi_model=$(cat /proc/device-tree/model 2>/dev/null | tr -d '\0')
-        print_verbose "Detected: $pi_model"
+    if [ "$is_pi" = false ]; then
+        print_error "🚫 This script is designed for Raspberry Pi only!"
+        exit 1
     fi
     
     print_success "Raspberry Pi detected"
@@ -494,14 +510,14 @@ except Exception as e:
     
     print_verbose "🧪 Testing Python library imports..."
     
-    if sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" >/dev/null 2>&1; then
+    if run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" >/dev/null 2>&1; then
         print_success "Python libraries verified successfully"
         return 0
     else
         print_error "Python library verification failed"
         if [ "$VERBOSE" = true ]; then
             print_verbose "Library test output:"
-            sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" || true
+            run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && python3 -c '$test_script'" || true
         fi
         return 1
     fi
@@ -515,7 +531,7 @@ check_i2c_enabled() {
         if [ "$UNATTENDED" = true ]; then
             print_warning "🔧 I2C interface is not enabled. Attempting to enable automatically..."
             # Enable I2C automatically in unattended mode
-            sudo raspi-config nonint do_i2c 0 >/dev/null 2>&1 || {
+            run_as_sudo raspi-config nonint do_i2c 0 >/dev/null 2>&1 || {
                 print_error "Failed to enable I2C automatically"
                 print_error "💡 Please enable I2C manually using 'sudo raspi-config'"
                 return 1
@@ -538,10 +554,10 @@ detect_oled() {
     
     if [ "$VERBOSE" = true ]; then
         echo "📊 I2C scan results:"
-        sudo i2cdetect -y 1
+        run_as_sudo i2cdetect -y 1
     fi
     
-    if sudo i2cdetect -y 1 | grep -q "3c"; then
+    if run_as_sudo i2cdetect -y 1 | grep -q "3c"; then
         print_success "📟 OLED display detected at address 0x3c"
         return 0
     else
@@ -563,13 +579,67 @@ get_username() {
     fi
 
     # If running as root and no sudo user is present, return root
-    if [ "$USER" = "root" ]; then
+    if [ "$USER" = "root" ] || [ "$(id -u)" = "0" ]; then
         echo "root"
         return 0
     fi
 
     # Default: return the current user
     echo "$USER"
+}
+
+# Sudo wrapper function - runs commands directly when already root
+run_as_sudo() {
+    if [ "$(id -u)" = "0" ]; then
+        # Already root, run directly
+        eval "$@"
+    else
+        # Not root, use sudo
+        sudo "$@"
+    fi
+}
+
+# Run command as specific user (handles root and non-root contexts)
+run_as_user() {
+    local target_user="$1"
+    shift
+    local cmd="$*"
+    
+    if [ "$(id -u)" = "0" ]; then
+        # Running as root
+        if [ "$target_user" = "root" ]; then
+            # Run directly as root
+            bash -c "$cmd"
+        else
+            # Switch to target user
+            su - "$target_user" -c "$cmd"
+        fi
+    else
+        # Not root, use sudo
+        sudo -u "$target_user" bash -c "$cmd"
+    fi
+}
+
+# Check for required commands
+check_dependencies() {
+    print_verbose "🔍 Checking for required system commands..."
+    local missing_deps=()
+    
+    # Essential commands
+    for cmd in apt-get python3 git wget; do
+        if ! command -v "$cmd" >/dev/null 2>&1; then
+            missing_deps+=("$cmd")
+        fi
+    done
+    
+    if [ ${#missing_deps[@]} -gt 0 ]; then
+        print_error "Missing required commands: ${missing_deps[*]}"
+        print_error "This system may not be compatible with the installation script."
+        return 1
+    fi
+    
+    print_verbose "✅ All required commands are available"
+    return 0
 }
 
 # Main installation function
@@ -605,6 +675,12 @@ main() {
     
     print_status "🚀 Starting OLED Stats Display installation..."
     
+    # Check for required dependencies
+    if ! check_dependencies; then
+        print_error "Cannot continue without required dependencies"
+        exit 1
+    fi
+    
     # Check if running on Raspberry Pi
     check_raspberry_pi
     
@@ -631,9 +707,9 @@ main() {
     if [ "$SKIP_APT_UPDATE" = false ]; then
         print_status "⚙️ Updating system packages..."
         if [ "$VERBOSE" = true ]; then
-            sudo apt-get update
+            run_as_sudo apt-get update
         else
-            sudo apt-get update -qq
+            run_as_sudo apt-get update -qq
         fi
         print_success "📦 System updated"
     else
@@ -646,11 +722,11 @@ main() {
     print_verbose "📦 Installing: python3-pip python3-venv git i2c-tools"
     
     if [ "$VERBOSE" = true ]; then
-        sudo apt-get install -y python3-pip python3-venv git i2c-tools
-        sudo apt-get install --upgrade python3-setuptools -y
+        run_as_sudo apt-get install -y python3-pip python3-venv git i2c-tools
+        run_as_sudo apt-get install --upgrade python3-setuptools -y
     else
-        sudo apt-get install -y python3-pip python3-venv git i2c-tools >/dev/null 2>&1
-        sudo apt-get install --upgrade python3-setuptools -y >/dev/null 2>&1
+        run_as_sudo apt-get install -y python3-pip python3-venv git i2c-tools >/dev/null 2>&1
+        run_as_sudo apt-get install --upgrade python3-setuptools -y >/dev/null 2>&1
     fi
     print_success "📦 Required packages installed"
     update_progress
@@ -674,7 +750,7 @@ main() {
     fi
     
     print_verbose "🐍 Creating virtual environment with system site packages..."
-    sudo -u "$USERNAME" python3 -m venv stats_env --system-site-packages
+    run_as_user "$USERNAME" "python3 -m venv $HOME_DIR/stats_env --system-site-packages"
     print_success "🐍 Virtual environment created"
     update_progress
     
@@ -683,15 +759,15 @@ main() {
     print_verbose "📦 Installing libraries directly in virtual environment..."
     
     if [ "$VERBOSE" = true ]; then
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install --upgrade adafruit-blinka"
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install adafruit-circuitpython-ssd1306"
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install psutil"
-        sudo apt-get install -y python3-pil
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install --upgrade adafruit-blinka"
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install adafruit-circuitpython-ssd1306"
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install psutil"
+        run_as_sudo apt-get install -y python3-pil
     else
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install --upgrade adafruit-blinka" >/dev/null 2>&1
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install adafruit-circuitpython-ssd1306" >/dev/null 2>&1
-        sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && pip3 install psutil" >/dev/null 2>&1
-        sudo apt-get install -y python3-pil >/dev/null 2>&1
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install --upgrade adafruit-blinka" >/dev/null 2>&1
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install adafruit-circuitpython-ssd1306" >/dev/null 2>&1
+        run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && pip3 install psutil" >/dev/null 2>&1
+        run_as_sudo apt-get install -y python3-pil >/dev/null 2>&1
     fi
     
     print_success "🐍 Python libraries installed"
@@ -714,14 +790,14 @@ main() {
     if [ -d "rpi_oled_stats" ]; then
         print_warning "🗑️ Existing rpi_oled_stats directory found, removing..."
         print_verbose "🗑️ Removing directory: $HOME_DIR/rpi_oled_stats"
-        sudo rm -rf rpi_oled_stats
+        run_as_sudo rm -rf rpi_oled_stats
     fi
     
     print_verbose "📥 Cloning repository from GitHub..."
     if [ "$VERBOSE" = true ]; then
-        sudo -u "$USERNAME" git clone https://github.com/4ngel2769/rpi_oled_stats.git rpi_oled_stats
+        run_as_user "$USERNAME" "git clone https://github.com/4ngel2769/rpi_oled_stats.git $HOME_DIR/rpi_oled_stats"
     else
-        sudo -u "$USERNAME" git clone https://github.com/4ngel2769/rpi_oled_stats.git rpi_oled_stats >/dev/null 2>&1
+        run_as_user "$USERNAME" "git clone https://github.com/4ngel2769/rpi_oled_stats.git $HOME_DIR/rpi_oled_stats" >/dev/null 2>&1
     fi
     
     cd rpi_oled_stats || {
@@ -734,7 +810,7 @@ main() {
     if [ ! -f "PixelOperator.ttf" ]; then
         print_status "🔤 Downloading PixelOperator font..."
         print_verbose "📥 Font not found, downloading PixelOperator.ttf..."
-        sudo -u "$USERNAME" wget -q "https://github.com/mklements/OLED_Stats/raw/main/PixelOperator.ttf"
+        run_as_user "$USERNAME" "cd $HOME_DIR/rpi_oled_stats && wget -q https://github.com/mklements/OLED_Stats/raw/main/PixelOperator.ttf"
     else
         print_verbose "✅ PixelOperator.ttf already exists"
     fi
@@ -742,7 +818,7 @@ main() {
     if [ ! -f "lineawesome-webfont.ttf" ]; then
         print_status "🔤 Downloading LineAwesome font..."
         print_verbose "📥 Font not found, downloading lineawesome-webfont.ttf..."
-        sudo -u "$USERNAME" wget -q "https://github.com/mklements/OLED_Stats/raw/main/lineawesome-webfont.ttf"
+        run_as_user "$USERNAME" "cd $HOME_DIR/rpi_oled_stats && wget -q https://github.com/mklements/OLED_Stats/raw/main/lineawesome-webfont.ttf"
     else
         print_verbose "✅ lineawesome-webfont.ttf already exists"
     fi
@@ -794,14 +870,14 @@ main() {
     update_progress
     
     # Test the selected script for 5 seconds if OLED was detected
-    if sudo i2cdetect -y 1 2>/dev/null | grep -q "3c" && [ "$SILENT" = false ]; then
+    if run_as_sudo i2cdetect -y 1 2>/dev/null | grep -q "3c" && [ "$SILENT" = false ]; then
         print_status "🧪 Testing $DEFAULT_SCRIPT for 5 seconds..."
         print_verbose "🧪 Running test command: timeout 5 python3 $DEFAULT_SCRIPT"
         
         if [ "$VERBOSE" = true ]; then
-            sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && cd $HOME_DIR/rpi_oled_stats && timeout 5 python3 $DEFAULT_SCRIPT || true"
+            run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && cd $HOME_DIR/rpi_oled_stats && timeout 5 python3 $DEFAULT_SCRIPT || true"
         else
-            sudo -u "$USERNAME" bash -c "source $HOME_DIR/stats_env/bin/activate && cd $HOME_DIR/rpi_oled_stats && timeout 5 python3 $DEFAULT_SCRIPT || true" >/dev/null 2>&1
+            run_as_user "$USERNAME" "source $HOME_DIR/stats_env/bin/activate && cd $HOME_DIR/rpi_oled_stats && timeout 5 python3 $DEFAULT_SCRIPT || true" >/dev/null 2>&1
         fi
         print_success "🧪 Script test completed"
     else
@@ -840,9 +916,9 @@ EOF
     print_verbose "⏰ Cron job: $CRON_JOB"
     
     # Check if cron job already exists
-    if ! sudo -u "$USERNAME" crontab -l 2>/dev/null | grep -q "oled_display_start.sh"; then
+    if ! run_as_user "$USERNAME" "crontab -l 2>/dev/null" | grep -q "oled_display_start.sh"; then
         print_verbose "⏰ Adding cron job for auto-start..."
-        (sudo -u "$USERNAME" crontab -l 2>/dev/null; echo "$CRON_JOB") | sudo -u "$USERNAME" crontab -
+        (run_as_user "$USERNAME" "crontab -l 2>/dev/null"; echo "$CRON_JOB") | run_as_user "$USERNAME" "crontab -"
         print_success "⏰ Auto-start configured"
     else
         print_warning "⏰ Auto-start already configured"
