@@ -13,7 +13,6 @@ RUN apt-get update && \
       iproute2 \
       zlib1g-dev \
       libjpeg-dev \
-      libgpiod2 \
       wget ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
