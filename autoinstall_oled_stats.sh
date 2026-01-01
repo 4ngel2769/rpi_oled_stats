@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # OLED Stats Display Installation Script
-# Version: v0.14.3
+# Version: v0.15.0
 # Script Author: 4ngel2769 / @angeldev0
 # Original OLED Stats Code: MKlement (mklements)
 # Repository: https://github.com/4ngel2769/rpi_oled_stats
@@ -13,7 +13,7 @@
 set -e  # Exit on any error
 
 # Script version
-SCRIPT_VERSION="v0.14.3"
+SCRIPT_VERSION="v0.15.0"
 SCRIPT_AUTHOR="4ngel2769 / @angeldev0"
 ORIGINAL_AUTHOR="MKlement (mklements)"
 
